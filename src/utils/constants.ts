@@ -8,7 +8,10 @@ export interface SmellMemory {
   source_guess: string;
   intensity: number;
   humidity: number;
-  season: Season;
+  /** 季节标签（1~4 个）：一段跨季回忆可同时属于多个季节 */
+  seasons?: Season[];
+  /** @deprecated 旧版单选季节，仅用于兼容老数据，页面打开时会迁移为 seasons 标签 */
+  season?: Season;
   smell_type: SmellType;
   memory_text: string;
   color_association: string;

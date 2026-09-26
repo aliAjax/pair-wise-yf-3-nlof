@@ -9,7 +9,7 @@ export interface MemoryInput {
   source_guess: string;
   intensity: number;
   humidity: number;
-  season: Season;
+  seasons: Season[];
   smell_type: SmellType;
   memory_text: string;
   color_association: string;
@@ -23,6 +23,7 @@ interface MemoryStore {
   updateMemory: (id: string, input: MemoryInput) => void;
   deleteMemory: (id: string) => void;
   initIfEmpty: () => void;
+  migrateLegacySeasons: () => void;
 }
 
 export const useMemoryStore = create<MemoryStore>()(
@@ -55,6 +56,18 @@ export const useMemoryStore = create<MemoryStore>()(
         if (get().memories.length === 0) {
           set({ memories: mockMemories });
         }
+      },
+      // 页面打开时把旧版单选 season 转成季节标签；原字段保留不动
+      migrateLegacySeasons: () => {
+        const mems = get().memories;
+        const needsMigration = (m: SmellMemory) =>
+          (!m.seasons || m.seasons.length === 0) && !!m.season;
+        if (!mems.some(needsMigration)) return;
+        set({
+          memories: mems.map((m) =>
+            needsMigration(m) ? { ...m, seasons: [m.season as Season] } : m,
+          ),
+        });
       },
     }),
     {

@@ -18,7 +18,7 @@ const defaultFilters: Filters = {
 };
 
 export default function Home() {
-  const { memories, initIfEmpty, addMemory, updateMemory, deleteMemory } = useMemoryStore();
+  const { memories, initIfEmpty, migrateLegacySeasons, addMemory, updateMemory, deleteMemory } = useMemoryStore();
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -26,7 +26,9 @@ export default function Home() {
 
   useEffect(() => {
     initIfEmpty();
-  }, [initIfEmpty]);
+    // 页面打开时把旧记录的单选季节转成季节标签
+    migrateLegacySeasons();
+  }, [initIfEmpty, migrateLegacySeasons]);
 
   const filteredMemories = useMemo(
     () => filterMemories(memories, filters),

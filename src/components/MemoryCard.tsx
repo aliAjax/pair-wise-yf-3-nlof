@@ -1,6 +1,6 @@
 import type { SmellMemory } from '../utils/constants';
 import { getSeasonInfo, getSmellTypeInfo, getEmotionInfo } from '../utils/constants';
-import { formatDate, contrastTextColor } from '../utils/helpers';
+import { formatDate, contrastTextColor, getMemorySeasons } from '../utils/helpers';
 import { Pencil, Trash2, ChevronDown, ChevronUp, Heart } from 'lucide-react';
 
 interface Props {
@@ -13,7 +13,7 @@ interface Props {
 }
 
 export default function MemoryCard({ memory, index, isExpanded, onToggle, onEdit, onDelete }: Props) {
-  const season = getSeasonInfo(memory.season);
+  const seasons = getMemorySeasons(memory).map(getSeasonInfo);
   const stype = getSmellTypeInfo(memory.smell_type);
   const emotion = getEmotionInfo(memory.emotion);
 
@@ -65,9 +65,11 @@ export default function MemoryCard({ memory, index, isExpanded, onToggle, onEdit
               <span className={`scent-tag ${emotion.bg} ${emotion.text}`}>
                 {emotion.emoji} {emotion.label}
               </span>
-              <span className="scent-tag bg-ochre-100 text-ochre-600">
-                {season.emoji} {season.label}
-              </span>
+              {seasons.map((s) => (
+                <span key={s.value} className="scent-tag bg-ochre-100 text-ochre-600">
+                  {s.emoji} {s.label}
+                </span>
+              ))}
               <span
                 className="scent-tag text-paper-50"
                 style={{ backgroundColor: stype.color }}

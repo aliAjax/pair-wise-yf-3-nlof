@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import type { SmellMemory, Season, SmellType, Emotion } from '../utils/constants';
 import { SEASONS, SMELL_TYPES, EMOTIONS } from '../utils/constants';
+import { getMemorySeasons } from '../utils/helpers';
 import type { MemoryInput } from '../store/memoryStore';
 
 interface Props {
@@ -16,7 +17,7 @@ const defaultForm: MemoryInput = {
   source_guess: '',
   intensity: 5,
   humidity: 5,
-  season: 'autumn',
+  seasons: ['autumn'],
   smell_type: 'woody',
   memory_text: '',
   color_association: '#8B5A2B',
@@ -34,9 +35,10 @@ export default function MemoryModal({ isOpen, onClose, onSubmit, editingData }: 
   useEffect(() => {
     if (isOpen) {
       if (editingData) {
-        const { id, created_at, updated_at, ...rest } = editingData;
-        void id; void created_at; void updated_at;
-        setForm(rest);
+        // 旧的单选季节在打开时转换成一个季节标签
+        const { id, created_at, updated_at, season, ...rest } = editingData;
+        void id; void created_at; void updated_at; void season;
+        setForm({ ...rest, seasons: getMemorySeasons(editingData) });
       } else {
         setForm(defaultForm);
       }
@@ -57,9 +59,20 @@ export default function MemoryModal({ isOpen, onClose, onSubmit, editingData }: 
     setForm((f) => ({ ...f, [key]: value }));
   };
 
+  const toggleSeason = (s: Season) => {
+    setForm((f) => ({
+      ...f,
+      seasons: f.seasons.includes(s)
+        ? f.seasons.filter((x) => x !== s)
+        : [...f.seasons, s],
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.location.trim()) return;
+    // 季节标签被删空时不保存，原数据保持原样
+    if (form.seasons.length === 0) return;
     onSubmit(form);
     onClose();
   };
@@ -183,24 +196,35 @@ export default function MemoryModal({ isOpen, onClose, onSubmit, editingData }: 
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-ink-700 mb-1.5">季节</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {SEASONS.map((s) => (
-                    <button
-                      key={s.value}
-                      type="button"
-                      onClick={() => update('season', s.value as Season)}
-                      className={`py-2.5 rounded-xl text-sm font-medium transition-all duration-200 flex flex-col items-center gap-0.5 ${
-                        form.season === s.value
-                          ? 'bg-ochre-500 text-paper-50 shadow-paper scale-[1.02]'
-                          : 'bg-paper-100 text-ink-700 hover:bg-paper-200 border border-paper-200'
-                      }`}
-                    >
-                      <span className="text-lg leading-none">{s.emoji}</span>
-                      <span>{s.label}</span>
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-sm font-medium text-ink-700">季节标签</label>
+                  <span className="text-[11px] text-ink-700/50">可多选，最多 4 个</span>
                 </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {SEASONS.map((s) => {
+                    const active = form.seasons.includes(s.value);
+                    return (
+                      <button
+                        key={s.value}
+                        type="button"
+                        onClick={() => toggleSeason(s.value)}
+                        className={`py-2.5 rounded-xl text-sm font-medium transition-all duration-200 flex flex-col items-center gap-0.5 ${
+                          active
+                            ? 'bg-ochre-500 text-paper-50 shadow-paper scale-[1.02]'
+                            : 'bg-paper-100 text-ink-700 hover:bg-paper-200 border border-paper-200'
+                        }`}
+                      >
+                        <span className="text-lg leading-none">{s.emoji}</span>
+                        <span>{s.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {form.seasons.length === 0 && (
+                  <p className="mt-1.5 text-xs text-brick-500">
+                    季节标签已删空，将无法保存——原记录会保持原样
+                  </p>
+                )}
               </div>
 
               <div>
@@ -306,7 +330,11 @@ export default function MemoryModal({ isOpen, onClose, onSubmit, editingData }: 
             <button type="button" onClick={onClose} className="btn-secondary">
               取消
             </button>
-            <button type="submit" className="btn-primary">
+            <button
+              type="submit"
+              disabled={form.seasons.length === 0}
+              className={`btn-primary ${form.seasons.length === 0 ? 'opacity-50 cursor-not-allowed hover:translate-y-0 hover:shadow-paper' : ''}`}
+            >
               {editingData ? '保存修改' : '封存这段记忆'}
             </button>
           </div>

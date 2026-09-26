@@ -1,4 +1,4 @@
-import type { SmellMemory } from './constants';
+import type { Season, SmellMemory } from './constants';
 
 export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
@@ -6,12 +6,19 @@ export function generateId(): string {
 
 export function formatDate(iso: string): string {
   const d = new Date(iso);
+  if (!iso || Number.isNaN(d.getTime())) return '日期未知';
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   const hh = String(d.getHours()).padStart(2, '0');
   const mm = String(d.getMinutes()).padStart(2, '0');
   return `${y}.${m}.${day} ${hh}:${mm}`;
+}
+
+/** 读取一段记忆的季节标签；旧的单选 season 值会被当作一个标签 */
+export function getMemorySeasons(m: SmellMemory): Season[] {
+  if (m.seasons && m.seasons.length > 0) return m.seasons;
+  return m.season ? [m.season] : [];
 }
 
 export interface Filters {
@@ -23,7 +30,8 @@ export interface Filters {
 export function filterMemories(memories: SmellMemory[], filters: Filters): SmellMemory[] {
   return memories.filter(m => {
     if (filters.smellType && m.smell_type !== filters.smellType) return false;
-    if (filters.season && m.season !== filters.season) return false;
+    // 任一命中季节即算匹配；一段记忆在结果里仍只出现一次
+    if (filters.season && !getMemorySeasons(m).includes(filters.season as Season)) return false;
     if (filters.emotion && m.emotion !== filters.emotion) return false;
     return true;
   });
@@ -57,6 +65,44 @@ export function getAverageIntensity(memories: SmellMemory[]): number {
 
 export function getTopIntensityMemories(memories: SmellMemory[], n = 5): SmellMemory[] {
   return [...memories].sort((a, b) => b.intensity - a.intensity).slice(0, n);
+}
+
+export interface YearSeasonGroup {
+  /** 封存年份；null 表示年份缺失的旧记录 */
+  year: number | null;
+  /** 该年封存的气味总量（每段记忆只算一次） */
+  total: number;
+  /** 各季节命中数：跨季回忆在每个对应季节都计入 */
+  counts: Record<Season, number>;
+  records: SmellMemory[];
+}
+
+export function getSeasonOverviewByYear(memories: SmellMemory[]): YearSeasonGroup[] {
+  const groups = new Map<number | null, YearSeasonGroup>();
+  const getGroup = (year: number | null): YearSeasonGroup => {
+    let g = groups.get(year);
+    if (!g) {
+      g = { year, total: 0, counts: { spring: 0, summer: 0, autumn: 0, winter: 0 }, records: [] };
+      groups.set(year, g);
+    }
+    return g;
+  };
+  for (const m of memories) {
+    const t = m.created_at ? new Date(m.created_at).getTime() : NaN;
+    const year = Number.isNaN(t) ? null : new Date(m.created_at).getFullYear();
+    const g = getGroup(year);
+    g.total += 1;
+    g.records.push(m);
+    for (const s of getMemorySeasons(m)) {
+      g.counts[s] += 1;
+    }
+  }
+  // 年份新的在前；年份缺失的旧记录单独排在最后
+  return [...groups.values()].sort((a, b) => {
+    if (a.year === null) return 1;
+    if (b.year === null) return -1;
+    return b.year - a.year;
+  });
 }
 
 export function hexToRgb(hex: string): { r: number; g: number; b: number } {

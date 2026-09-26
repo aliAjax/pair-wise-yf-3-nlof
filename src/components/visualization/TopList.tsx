@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { SmellMemory } from '../../utils/constants';
-import { getTopIntensityMemories, contrastTextColor } from '../../utils/helpers';
+import { getTopIntensityMemories, contrastTextColor, getMemorySeasons } from '../../utils/helpers';
 import { getSeasonInfo, getSmellTypeInfo } from '../../utils/constants';
 
 interface Props {
@@ -22,7 +22,7 @@ export default function TopList({ memories, onSelect }: Props) {
           <div className="text-center py-8 text-ink-700/40 text-sm">暂无记忆记录</div>
         ) : (
           top5.map((m, idx) => {
-            const season = getSeasonInfo(m.season);
+            const seasons = getMemorySeasons(m).map(getSeasonInfo);
             const stype = getSmellTypeInfo(m.smell_type);
             return (
               <button
@@ -41,7 +41,9 @@ export default function TopList({ memories, onSelect }: Props) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-base">{season.emoji}</span>
+                    {seasons.map((s) => (
+                      <span key={s.value} className="text-base">{s.emoji}</span>
+                    ))}
                     <span className="text-base">{stype.emoji}</span>
                     <span className="text-sm font-medium text-ink-800 truncate">{m.location}</span>
                   </div>
