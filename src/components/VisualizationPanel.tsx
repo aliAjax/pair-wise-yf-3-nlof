@@ -3,6 +3,7 @@ import IntensityChart from './visualization/IntensityChart';
 import AvgGauge from './visualization/AvgGauge';
 import HumidityScatter from './visualization/HumidityScatter';
 import TopList from './visualization/TopList';
+import SeasonOverview from './visualization/SeasonOverview';
 
 interface Props {
   memories: SmellMemory[];
@@ -23,6 +24,7 @@ export default function VisualizationPanel({ memories, onSelect }: Props) {
         <AvgGauge memories={memories} />
         <HumidityScatter memories={memories} />
         <TopList memories={memories} onSelect={onSelect} />
+        <SeasonOverview memories={memories} />
       </div>
     </section>
   );

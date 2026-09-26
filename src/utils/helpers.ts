@@ -1,4 +1,4 @@
-import type { SmellMemory } from './constants';
+import type { Season, SmellMemory } from './constants';
 
 export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
@@ -6,6 +6,7 @@ export function generateId(): string {
 
 export function formatDate(iso: string): string {
   const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '日期未知';
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
@@ -23,7 +24,7 @@ export interface Filters {
 export function filterMemories(memories: SmellMemory[], filters: Filters): SmellMemory[] {
   return memories.filter(m => {
     if (filters.smellType && m.smell_type !== filters.smellType) return false;
-    if (filters.season && m.season !== filters.season) return false;
+    if (filters.season && !m.seasons.includes(filters.season as Season)) return false;
     if (filters.emotion && m.emotion !== filters.emotion) return false;
     return true;
   });
@@ -57,6 +58,36 @@ export function getAverageIntensity(memories: SmellMemory[]): number {
 
 export function getTopIntensityMemories(memories: SmellMemory[], n = 5): SmellMemory[] {
   return [...memories].sort((a, b) => b.intensity - a.intensity).slice(0, n);
+}
+
+export interface SeasonYearGroup {
+  /** 封存年份；null 表示旧记录缺失年份 */
+  year: number | null;
+  /** 该年份封存的记忆总数（每段只计一次） */
+  total: number;
+  /** 各季节命中次数（跨季回忆在每个季节各计一次） */
+  counts: Record<Season, number>;
+}
+
+export function getSeasonYearOverview(memories: SmellMemory[]): SeasonYearGroup[] {
+  const groups = new Map<string, SeasonYearGroup>();
+  memories.forEach((m) => {
+    const time = new Date(m.created_at).getTime();
+    const year = Number.isNaN(time) ? null : new Date(time).getFullYear();
+    const key = year === null ? 'unknown' : String(year);
+    let g = groups.get(key);
+    if (!g) {
+      g = { year, total: 0, counts: { spring: 0, summer: 0, autumn: 0, winter: 0 } };
+      groups.set(key, g);
+    }
+    g.total += 1;
+    m.seasons.forEach((s) => { g.counts[s] += 1; });
+  });
+  return [...groups.values()].sort((a, b) => {
+    if (a.year === null) return 1;
+    if (b.year === null) return -1;
+    return b.year - a.year;
+  });
 }
 
 export function hexToRgb(hex: string): { r: number; g: number; b: number } {

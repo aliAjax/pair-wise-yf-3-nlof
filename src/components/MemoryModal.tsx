@@ -16,7 +16,7 @@ const defaultForm: MemoryInput = {
   source_guess: '',
   intensity: 5,
   humidity: 5,
-  season: 'autumn',
+  seasons: ['autumn'],
   smell_type: 'woody',
   memory_text: '',
   color_association: '#8B5A2B',
@@ -29,6 +29,7 @@ const humidityTicks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 export default function MemoryModal({ isOpen, onClose, onSubmit, editingData }: Props) {
   const [form, setForm] = useState<MemoryInput>(defaultForm);
+  const [seasonError, setSeasonError] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -40,6 +41,7 @@ export default function MemoryModal({ isOpen, onClose, onSubmit, editingData }: 
       } else {
         setForm(defaultForm);
       }
+      setSeasonError(false);
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -57,9 +59,28 @@ export default function MemoryModal({ isOpen, onClose, onSubmit, editingData }: 
     setForm((f) => ({ ...f, [key]: value }));
   };
 
+  const toggleSeason = (value: Season) => {
+    setSeasonError(false);
+    setForm((f) => {
+      const next = f.seasons.includes(value)
+        ? f.seasons.filter((s) => s !== value)
+        : [...f.seasons, value];
+      next.sort(
+        (a, b) =>
+          SEASONS.findIndex((x) => x.value === a) - SEASONS.findIndex((x) => x.value === b),
+      );
+      return { ...f, seasons: next };
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.location.trim()) return;
+    // 季节标签被删空时不保存，原数据保持原样
+    if (form.seasons.length === 0) {
+      setSeasonError(true);
+      return;
+    }
     onSubmit(form);
     onClose();
   };
@@ -183,24 +204,40 @@ export default function MemoryModal({ isOpen, onClose, onSubmit, editingData }: 
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-ink-700 mb-1.5">季节</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {SEASONS.map((s) => (
-                    <button
-                      key={s.value}
-                      type="button"
-                      onClick={() => update('season', s.value as Season)}
-                      className={`py-2.5 rounded-xl text-sm font-medium transition-all duration-200 flex flex-col items-center gap-0.5 ${
-                        form.season === s.value
-                          ? 'bg-ochre-500 text-paper-50 shadow-paper scale-[1.02]'
-                          : 'bg-paper-100 text-ink-700 hover:bg-paper-200 border border-paper-200'
-                      }`}
-                    >
-                      <span className="text-lg leading-none">{s.emoji}</span>
-                      <span>{s.label}</span>
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-sm font-medium text-ink-700">季节标签</label>
+                  <span className="text-[11px] text-ink-700/50">
+                    可多选 · 已选 {form.seasons.length}/4
+                  </span>
                 </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {SEASONS.map((s) => {
+                    const active = form.seasons.includes(s.value);
+                    return (
+                      <button
+                        key={s.value}
+                        type="button"
+                        onClick={() => toggleSeason(s.value)}
+                        aria-pressed={active}
+                        className={`py-2.5 rounded-xl text-sm font-medium transition-all duration-200 flex flex-col items-center gap-0.5 ${
+                          active
+                            ? 'bg-ochre-500 text-paper-50 shadow-paper scale-[1.02]'
+                            : 'bg-paper-100 text-ink-700 hover:bg-paper-200 border border-paper-200'
+                        }`}
+                      >
+                        <span className="text-lg leading-none">{s.emoji}</span>
+                        <span>{s.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {seasonError && (
+                  <p className="mt-2 text-xs text-brick-500">
+                    {editingData
+                      ? '至少保留一个季节标签，本次修改未保存，原记录保持不变'
+                      : '请至少选择一个季节标签'}
+                  </p>
+                )}
               </div>
 
               <div>

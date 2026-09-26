@@ -8,7 +8,7 @@ export interface SmellMemory {
   source_guess: string;
   intensity: number;
   humidity: number;
-  season: Season;
+  seasons: Season[];
   smell_type: SmellType;
   memory_text: string;
   color_association: string;
@@ -18,11 +18,11 @@ export interface SmellMemory {
   updated_at: string;
 }
 
-export const SEASONS: { value: Season; label: string; emoji: string }[] = [
-  { value: 'spring', label: '春', emoji: '🌸' },
-  { value: 'summer', label: '夏', emoji: '☀️' },
-  { value: 'autumn', label: '秋', emoji: '🍂' },
-  { value: 'winter', label: '冬', emoji: '❄️' },
+export const SEASONS: { value: Season; label: string; emoji: string; color: string }[] = [
+  { value: 'spring', label: '春', emoji: '🌸', color: '#C98BA9' },
+  { value: 'summer', label: '夏', emoji: '☀️', color: '#D4A574' },
+  { value: 'autumn', label: '秋', emoji: '🍂', color: '#8B5A2B' },
+  { value: 'winter', label: '冬', emoji: '❄️', color: '#8A9BA6' },
 ];
 
 export const SMELL_TYPES: { value: SmellType; label: string; emoji: string; color: string }[] = [
